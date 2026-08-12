@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrackSense AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #08090B;
+            color: #F1F1ED;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            margin-bottom: 50px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+            font-weight: 700;
+        }
+        
+        .tagline {
+            font-size: 0.95em;
+            color: #85888D;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Status */
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #48D597;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.offline {
+            background: #F05A5A;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Upload Box */
+        .upload-section {
+            margin-bottom: 40px;
+        }
+        
+        .upload-box {
+            border: 2px solid #2A2D32;
+            border-radius: 8px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #101216;
+        }
+        
+        .upload-box:hover {
+            border-color: #48D597;
+            background: rgba(72, 213, 151, 0.05);
+        }
+        
+        .upload-box input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .upload-subtext {
+            color: #85888D;
+            font-size: 0.9em;
+            margin-bottom: 25px;
+        }
+        
+        .upload-button {
+            background: #48D597;
+            color: #08090B;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95em;
+        }
+        
+        .upload-button:hover {
+            background: #3BB87C;
+            transform: translateY(-2px);
+        }
+        
+        .upload-button:disabled {
+            background: #85888D;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Preview */
+        .preview-section {
+            margin: 40px 0;
+            display: none;
+        }
+        
+        .preview-section.show {
+            display: block;
+        }
+        
+        .preview-label {
+            font-size: 0.9em;
+            color: #85888D;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .preview {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            border: 1px solid #2A2D32;
+            display: block;
+            margin-bottom: 30px;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #2A2D32;
+            border-top-color: #48D597;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #85888D;
+            margin-top: 20px;
+        }
+        
+        /* Error */
+        .error {
+            background: #F05A5A;
+            color: white;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        /* Results */
+        .result {
+            display: none;
+            padding: 40px;
+            background: #101216;
+            border: 1px solid #2A2D32;
+            border-radius: 8px;
+            margin-top: 40px;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result-header {
+            margin-bottom: 30px;
+        }
+        
+        .result-label {
+            font-size: 0.85em;
+            color: #85888D;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+        
+        .result-condition {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .result-condition.dry {
+            color: #48D597;
+        }
+        
+        .result-condition.damp {
+            color: #E8C65A;
+        }
+        
+        .result-condition.wet {
+            color: #F05A5A;
+        }
+        
+        .result-confidence {
+            font-size: 1.1em;
+            color: #85888D;
+        }
+        
+        .result-confidence-value {
+            font-weight: 600;
+            color: #F1F1ED;
+        }
+        
+        /* Probabilities Grid */
+        .probabilities {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .prob-card {
+            background: #15171B;
+            padding: 25px;
+            border-radius: 4px;
+            border-left: 3px solid #2A2D32;
+            transition: all 0.3s;
+        }
+        
+        .prob-card:hover {
+            border-left-color: #48D597;
+            background: rgba(72, 213, 151, 0.05);
+        }
+        
+        .prob-label {
+            font-size: 0.9em;
+            color: #85888D;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .prob-value {
+            font-size: 2em;
+            font-weight: 700;
+        }
+        
+        .prob-card.prob-dry .prob-value {
+            color: #48D597;
+        }
+        
+        .prob-card.prob-damp .prob-value {
+            color: #E8C65A;
+        }
+        
+        .prob-card.prob-wet .prob-value {
+            color: #F05A5A;
+        }
+        
+        /* Session Info */
+        .session-info {
+            font-size: 0.85em;
+            color: #85888D;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #2A2D32;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #2A2D32;
+            text-align: center;
+            color: #85888D;
+            font-size: 0.9em;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .upload-box {
+                padding: 40px 20px;
+            }
+            
+            .probabilities {
+                grid-template-columns: 1fr;
+            }
+            
+            .result-condition {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>TRACKSENSE AI</h1>
+            <p class="tagline">REAL-TIME TRACK CONDITION INTELLIGENCE</p>
+        </div>
+        
+        <!-- Status -->
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Connecting...</span>
+        </div>
+        
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept="image/*">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">DROP IMAGE HERE</div>
+                <div class="upload-subtext">or click to select from your computer</div>
+                <button class="upload-button">SELECT IMAGE</button>
+            </div>
+        </div>
+        
+        <!-- Preview -->
+        <div class="preview-section" id="previewSection">
+            <div class="preview-label">Preview</div>
+            <img id="preview" class="preview" alt="Preview">
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">ANALYZING TRACK CONDITION...</div>
+        </div>
+        
+        <!-- Error -->
+        <div class="error" id="error"></div>
+        
+        <!-- Results -->
+        <div class="result" id="result">
+            <div class="result-header">
+                <div class="result-label">CURRENT CONDITION</div>
+                <div class="result-condition" id="condition"></div>
+                <div class="result-confidence">
+                    Confidence: <span class="result-confidence-value" id="confidence">0</span>%
+                </div>
+            </div>
+            
+            <div class="result-label" style="margin-top: 30px;">PROBABILITIES</div>
+            <div class="probabilities">
+                <div class="prob-card prob-dry">
+                    <div class="prob-label">DRY</div>
+                    <div class="prob-value" id="prob-dry">0%</div>
+                </div>
+                <div class="prob-card prob-damp">
+                    <div class="prob-label">DAMP</div>
+                    <div class="prob-value" id="prob-damp">0%</div>
+                </div>
+                <div class="prob-card prob-wet">
+                    <div class="prob-label">WET</div>
+                    <div class="prob-value" id="prob-wet">0%</div>
+                </div>
+            </div>
+            
+            <div class="session-info">
+                Session ID: <code id="sessionId">-</code><br>
+                Frame ID: <code id="frameId">-</code><br>
+                Time: <code id="timestamp">-</code>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>TrackSense AI v1.0.0</p>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration
+        const API_URL = 'http://127.0.0.1:8000';
+        let sessionId = null;
+        
+        // Elements
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewSection = document.getElementById('previewSection');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const result = document.getElementById('result');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        
+        // Check API health on load
+        window.addEventListener('load', checkAPIHealth);
+        
+        // File input listener
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Prevent default drag behavior
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', handleFileDrop);
+        
+        function handleFileDrop(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect({ target: fileInput });
+            }
+        }
+        
+        function checkAPIHealth() {
+            fetch(`${API_URL}/health`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ONLINE') {
+                        statusDot.classList.remove('offline');
+                        statusText.textContent = '● SYSTEM ONLINE';
+                    } else {
+                        statusDot.classList.add('offline');
+                        statusText.textContent = '● SYSTEM OFFLINE';
+                    }
+                })
+                .catch(() => {
+                    statusDot.classList.add('offline');
+                    statusText.textContent = '● SYSTEM OFFLINE - Cannot connect to API';
+                });
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                previewSection.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+            
+            // Analyze image
+            analyzeImage(file);
+        }
+        
+        async function analyzeImage(file) {
+            // Show loading, hide error and result
+            loading.classList.add('show');
+            error.classList.remove('show');
+            result.classList.remove('show');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            if (sessionId) {
+                formData.append('session_id', sessionId);
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/api/analyze`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Store session ID
+                if (!sessionId) {
+                    sessionId = data.session_id;
+                }
+                
+                // Display result
+                displayResult(data);
+                
+            } catch (err) {
+                showError(`Error: ${err.message}`);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+        
+        function displayResult(data) {
+            // Set condition with color
+            const conditionEl = document.getElementById('condition');
+            conditionEl.textContent = data.condition;
+            conditionEl.className = `result-condition ${data.condition.toLowerCase()}`;
+            
+            // Set confidence
+            document.getElementById('confidence').textContent = data.confidence.toFixed(1);
+            
+            // Set probabilities
+            document.getElementById('prob-dry').textContent = data.probabilities.DRY.toFixed(1) + '%';
+            document.getElementById('prob-damp').textContent = data.probabilities.DAMP.toFixed(1) + '%';
+            document.getElementById('prob-wet').textContent = data.probabilities.WET.toFixed(1) + '%';
+            
+            // Set session info
+            document.getElementById('sessionId').textContent = data.session_id.substring(0, 8);
+            document.getElementById('frameId').textContent = data.frame_id;
+            document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+            
+            // Show result
+            result.classList.add('show');
+        }
+        
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('show');
+        }
+    </script>
+</body>
+
+
+</html>
+
