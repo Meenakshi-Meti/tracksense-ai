@@ -193,3 +193,343 @@
 @utility animate-pit-pulse {
   animation: pit-pulse 1.6s ease-in-out infinite;
 }
+
+/* ==========================================================================
+   RACE-THEME MOTION & TRANSITIONS
+   ========================================================================== */
+
+/* Entrance: rise + fade, tuned for the racing card system */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-fade-up {
+  animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Live glow around a panel that is streaming data */
+@keyframes panel-live {
+  0%,
+  100% {
+    box-shadow:
+      var(--shadow-panel),
+      0 0 0 1px oklch(0.75 0.18 60 / 0.25),
+      0 0 22px -6px oklch(0.75 0.18 60 / 0.5);
+  }
+  50% {
+    box-shadow:
+      var(--shadow-panel),
+      0 0 0 1px oklch(0.75 0.18 60 / 0.45),
+      0 0 34px -4px oklch(0.75 0.18 60 / 0.75);
+  }
+}
+
+@utility panel-live {
+  animation: panel-live 3.2s ease-in-out infinite;
+}
+
+/* Scrolling LED-style telemetry ticker */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility ticker-track {
+  animation: ticker-scroll 26s linear infinite;
+  width: max-content;
+}
+
+@utility ticker-wrap {
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+/* Hero speed lines — light streaks sweeping across the floodlit shot */
+@keyframes speed-lines {
+  0% {
+    transform: translateX(-12%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(12%);
+    opacity: 0;
+  }
+}
+
+@utility hero-speed-lines {
+  background-image: repeating-linear-gradient(
+    105deg,
+    transparent 0 40px,
+    oklch(0.97 0.005 90 / 0.08) 40px 2px,
+    transparent 42px 110px
+  );
+  background-size: 200% 100%;
+  animation: speed-lines 7s linear infinite;
+  mix-blend-mode: screen;
+}
+
+/* Animated title gradient (chases from amber to red like pit lights) */
+@keyframes gradient-shift {
+  0%,
+  100% {
+    filter: hue-rotate(0deg) drop-shadow(0 0 18px oklch(0.75 0.18 60 / 0.45));
+  }
+  50% {
+    filter: hue-rotate(18deg) drop-shadow(0 0 26px oklch(0.62 0.23 25 / 0.6));
+  }
+}
+
+@utility animate-gradient-shift {
+  animation: gradient-shift 4.5s ease-in-out infinite;
+}
+
+/* Pulp "LIVE" dot — hard red, blink on race pace */
+@keyframes live-blink {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.62 0.23 25 / 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@utility live-dot {
+  span {
+    animation: live-blink 1.4s ease-out infinite;
+  }
+}
+
+/* Stat cells in the weather grid */
+@utility stat-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--asphalt);
+  transition:
+    border-color 0.25s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease;
+
+  &:hover {
+    border-color: oklch(0.75 0.18 60 / 0.5);
+    transform: translateY(-2px);
+    background-color: oklch(0.26 0.012 260);
+  }
+}
+
+/* ==========================================================================
+   WEATHER SCENE (animated mini-forecast diorama)
+   ========================================================================== */
+
+.weather-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Sun */
+.sun-disc {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, oklch(0.92 0.15 85 / 0.95), oklch(0.87 0.18 95 / 0.55) 60%, transparent 72%);
+  box-shadow:
+    0 0 30px oklch(0.87 0.18 95 / 0.55),
+    0 0 70px oklch(0.87 0.18 95 / 0.35);
+}
+
+@keyframes sun-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sun-rays {
+  position: absolute;
+  top: -24px;
+  right: -20px;
+  width: 140px;
+  height: 140px;
+  animation: sun-spin 26s linear infinite;
+  background-image: repeating-conic-gradient(
+    from 0deg,
+    oklch(0.87 0.18 95 / 0.32) 0 8deg,
+    transparent 8deg 24deg
+  );
+  mask-image: radial-gradient(circle, transparent 30%, black 46%, black 62%, transparent 66%);
+}
+
+/* Clouds */
+.cloud-puff {
+  position: absolute;
+  height: 26px;
+  width: 90px;
+  border-radius: 9999px;
+  background: oklch(0.62 0.012 260 / 0.5);
+  filter: blur(1px);
+}
+
+.cloud-puff::before,
+.cloud-puff::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  background: inherit;
+}
+
+.cloud-puff::before {
+  width: 34px;
+  height: 34px;
+  top: -18px;
+  left: 14px;
+}
+
+.cloud-puff::after {
+  width: 26px;
+  height: 26px;
+  top: -12px;
+  right: 12px;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-130px);
+  }
+  to {
+    transform: translateX(calc(100% + 130px));
+  }
+}
+
+.cloud-puff-a {
+  top: 14px;
+  left: -130px;
+  animation: cloud-drift 18s linear infinite;
+}
+
+.cloud-puff-b {
+  top: 54px;
+  left: -180px;
+  opacity: 0.7;
+  animation: cloud-drift 26s linear infinite 4s;
+}
+
+/* Rain */
+@keyframes rain-fall {
+  from {
+    transform: translateY(-40px);
+  }
+  to {
+    transform: translateY(240px);
+  }
+}
+
+.rain-drops {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    100deg,
+    transparent 0 7px,
+    oklch(0.72 0.15 240 / 0.6) 7px 9px
+  );
+  opacity: 0.75;
+  animation: rain-fall 0.7s linear infinite;
+  mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
+}
+
+/* Snow */
+@keyframes snow-fall {
+  from {
+    transform: translateY(-30px) translateX(0);
+  }
+  50% {
+    transform: translateY(100px) translateX(14px);
+  }
+  to {
+    transform: translateY(240px) translateX(-6px);
+  }
+}
+
+.snow-flakes {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20px 20px, oklch(0.97 0.005 90 / 0.9) 1.5px, transparent 2px),
+    radial-gradient(circle at 70px 90px, oklch(0.97 0.005 90 / 0.7) 1.2px, transparent 1.7px),
+    radial-gradient(circle at 120px 40px, oklch(0.97 0.005 90 / 0.85) 1.4px, transparent 1.9px),
+    radial-gradient(circle at 160px 120px, oklch(0.97 0.005 90 / 0.6) 1.2px, transparent 1.7px);
+  background-size: 200px 140px;
+  animation: snow-fall 3.2s linear infinite;
+}
+
+/* Storm lightning */
+@keyframes lightning-flash {
+  0%,
+  86%,
+  92%,
+  100% {
+    opacity: 0;
+  }
+  88% {
+    opacity: 0.85;
+  }
+  90% {
+    opacity: 0.15;
+  }
+}
+
+.lightning-flash {
+  position: absolute;
+  inset: 0;
+  background: oklch(0.87 0.18 95 / 0.35);
+  animation: lightning-flash 5.5s linear infinite;
+}
+
+/* Fog banks */
+@keyframes fog-slide {
+  from {
+    transform: translateX(-60px);
+  }
+  to {
+    transform: translateX(60px);
+  }
+}
+
+.fog-bank {
+  position: absolute;
+  inset: auto -30% 0;
+  height: 60%;
+  background: linear-gradient(to bottom, transparent, oklch(0.72 0.012 260 / 0.55));
+  filter: blur(8px);
+  animation: fog-slide 9s ease-in-out infinite alternate;
+}
+
+.fog-bank-b {
+  animation-delay: -4.5s;
+  opacity: 0.7;
+}

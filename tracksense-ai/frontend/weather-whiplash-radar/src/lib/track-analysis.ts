@@ -1,5 +1,3 @@
-import { analyzeFrame, API_BASE, type AnalyzeResponse } from "./api";
-
 export type TrackCondition = "Dry" | "Damp" | "Wet" | "Drying";
 
 export interface Reading {
@@ -13,10 +11,22 @@ export interface Reading {
   timestamp: number;
 }
 
+/**
+ * Classifies a frame via the TrackSense AI backend (FastAPI /api/analyze).
+ * Falls back to a client-side estimate when the API is unreachable so the
+ * demo keeps working offline. Override the API location with VITE_API_URL.
+ */
+const API_BASE: string = import.meta.env["VITE_API_URL"] ?? "http://127.0.0.1:8001";
+
 let sessionId: string | undefined;
 
-export function resetSession() {
-  sessionId = undefined;
+interface AnalyzeResponse {
+  session_id: string;
+  frame_id: number;
+  condition: "DRY" | "DAMP" | "WET";
+  confidence: number;
+  probabilities: { DRY: number; DAMP: number; WET: number };
+  timestamp: string;
 }
 
 const CONDITION_FROM_API: Record<AnalyzeResponse["condition"], TrackCondition> = {
@@ -25,15 +35,18 @@ const CONDITION_FROM_API: Record<AnalyzeResponse["condition"], TrackCondition> =
   WET: "Wet",
 };
 
-/**
- * Classifies a frame via the TrackSense AI backend (FastAPI /api/analyze).
- * Falls back to a client-side estimate when the API is unreachable so the
- * app stays usable offline. Override the API location with VITE_API_URL.
- */
 export async function analyzeImage(file: File, imageUrl: string): Promise<Omit<Reading, "id">> {
   try {
-    const data = await analyzeFrame(file, sessionId);
+    const form = new FormData();
+    form.append("file", file);
+    if (sessionId) form.append("session_id", sessionId);
+
+    const res = await fetch(`${API_BASE}/api/analyze`, { method: "POST", body: form });
+    if (!res.ok) throw new Error(`TrackSense API responded ${res.status}`);
+
+    const data: AnalyzeResponse = await res.json();
     sessionId = data.session_id;
+
     return {
       fileName: file.name,
       imageUrl,
@@ -151,14 +164,12 @@ export function computeTrend(readings: Reading[]): TrendResult | null {
   };
 }
 
-export const CONDITION_META: Record<TrackCondition, { tone: string; ring: string; blurb: string }> =
-  {
-    Dry: {
-      tone: "text-flag-green",
-      ring: "ring-flag-green/40",
-      blurb: "Full grip, slicks optimal",
-    },
-    Damp: { tone: "text-flag-yellow", ring: "ring-flag-yellow/40", blurb: "Patchy grip off-line" },
-    Wet: { tone: "text-flag-blue", ring: "ring-flag-blue/40", blurb: "Low grip, aquaplaning risk" },
-    Drying: { tone: "text-primary", ring: "ring-primary/40", blurb: "Crossover window forming" },
-  };
+export const CONDITION_META: Record<
+  TrackCondition,
+  { tone: string; ring: string; blurb: string }
+> = {
+  Dry: { tone: "text-flag-green", ring: "ring-flag-green/40", blurb: "Full grip, slicks optimal" },
+  Damp: { tone: "text-flag-yellow", ring: "ring-flag-yellow/40", blurb: "Patchy grip off-line" },
+  Wet: { tone: "text-flag-blue", ring: "ring-flag-blue/40", blurb: "Low grip, aquaplaning risk" },
+  Drying: { tone: "text-primary", ring: "ring-primary/40", blurb: "Crossover window forming" },
+};

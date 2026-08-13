@@ -1,27 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Flag,
-  TrendingDown,
-  TrendingUp,
-  Minus,
-  Gauge,
-  Trash2,
-  CircleDot,
-  Cpu,
-  Radio,
-} from "lucide-react";
+import { Flag, TrendingDown, TrendingUp, Minus, Gauge, Trash2, CircleDot } from "lucide-react";
 import heroImg from "@/assets/track-hero.jpg";
 import { FrameDropzone } from "@/components/FrameDropzone";
 import { TrendChart } from "@/components/TrendChart";
-import { WeatherPanel } from "@/components/WeatherPanel";
 import { Button } from "@/components/ui/button";
-import { fetchHealth } from "@/lib/api";
 import {
   analyzeImage,
   computeTrend,
   CONDITION_META,
-  resetSession,
   type Reading,
 } from "@/lib/track-analysis";
 
@@ -48,25 +35,6 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [busy, setBusy] = useState(false);
-  const [engine, setEngine] = useState<{ online: boolean; modelLoaded: boolean } | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    const check = async () => {
-      try {
-        const health = await fetchHealth();
-        if (alive) setEngine({ online: true, modelLoaded: health.model_loaded });
-      } catch {
-        if (alive) setEngine({ online: false, modelLoaded: false });
-      }
-    };
-    check();
-    const timer = setInterval(check, 10_000);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-    };
-  }, []);
 
   const trend = useMemo(() => computeTrend(readings), [readings]);
   const latest = readings[readings.length - 1];
@@ -101,34 +69,14 @@ function Index() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
         <div className="checker-strip absolute inset-x-0 top-0 h-4" />
-        <div className="hero-speed-lines pointer-events-none absolute inset-0" />
         <div className="relative mx-auto max-w-6xl px-6 pb-14 pt-20">
-          <p className="flex animate-fade-up items-center gap-2 font-mono text-xs uppercase tracking-[0.35em] text-primary">
+          <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.35em] text-primary">
             <CircleDot className="size-3 animate-pit-pulse" /> Live from the pit wall
           </p>
-          <div className="mt-3 flex animate-fade-up flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-widest [animation-delay:80ms]">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
-                engine?.online
-                  ? "border-flag-green/50 bg-flag-green/10 text-flag-green"
-                  : "border-amber-500/50 bg-amber-500/10 text-amber-400"
-              }`}
-              title="TrackSense AI inference engine connection"
-            >
-              <Cpu className="size-3" />
-              {engine === null
-                ? "Connecting…"
-                : engine.online && engine.modelLoaded
-                  ? "AI engine online"
-                  : engine.online
-                    ? "AI engine online — no model"
-                    : "AI engine offline — using fallback"}
-            </span>
-          </div>
-          <h1 className="mt-4 max-w-3xl animate-fade-up font-display text-6xl leading-none sm:text-7xl [animation-delay:160ms]">
-            Weather <span className="text-gradient-pit animate-gradient-shift">Whiplash</span> Radar
+          <h1 className="mt-4 max-w-3xl font-display text-6xl leading-none sm:text-7xl">
+            Weather <span className="text-gradient-pit">Whiplash</span> Radar
           </h1>
-          <p className="mt-4 max-w-xl animate-fade-up text-base text-muted-foreground [animation-delay:240ms]">
+          <p className="mt-4 max-w-xl text-base text-muted-foreground">
             Feed in trackside or onboard frames. Get the surface call, the trend, and the tire
             window — before the weather report catches up.
           </p>
@@ -136,32 +84,9 @@ function Index() {
         <div className="kerb-strip h-2" />
       </header>
 
-      <div className="ticker-wrap relative z-10 overflow-hidden border-b border-border bg-asphalt/80">
-        <div className="ticker-track flex items-center gap-8 whitespace-nowrap py-1.5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          <span className="flex items-center gap-1.5 text-flag-red">
-            <Radio className="size-3 animate-pit-pulse" /> Live telemetry
-          </span>
-          <span>Wetness index {latest?.wetnessIndex ?? "--"}/100</span>
-          <span>Call {trend?.displayCondition.toUpperCase() ?? "--"}</span>
-          <span>AI engine {engine?.online ? (engine.modelLoaded ? "ONLINE" : "NO MODEL") : "OFFLINE"}</span>
-          <span>Frames analysed {readings.length}</span>
-          <span>Temp at track — see weather radar</span>
-          <span className="flex items-center gap-1.5 text-flag-red">
-            <Radio className="size-3 animate-pit-pulse" /> Live telemetry
-          </span>
-          <span>Wetness index {latest?.wetnessIndex ?? "--"}/100</span>
-          <span>Call {trend?.displayCondition.toUpperCase() ?? "--"}</span>
-          <span>AI engine {engine?.online ? (engine.modelLoaded ? "ONLINE" : "NO MODEL") : "OFFLINE"}</span>
-          <span>Frames analysed {readings.length}</span>
-          <span>Temp at track — see weather radar</span>
-        </div>
-      </div>
-
       <main className="mx-auto max-w-6xl px-6 py-12">
-        <WeatherPanel />
-
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-          <section className="panel-pit animate-fade-up rounded-lg p-6">
+          <section className="panel-pit rounded-lg p-6">
             <h2 className="mb-4 flex items-center gap-2 text-2xl">
               <Flag className="size-5 text-primary" /> Frame intake
             </h2>
@@ -202,7 +127,7 @@ function Index() {
             )}
           </section>
 
-          <section className="panel-pit animate-fade-up rounded-lg p-6 [animation-delay:100ms]">
+          <section className="panel-pit rounded-lg p-6">
             <h2 className="mb-4 flex items-center gap-2 text-2xl">
               <Gauge className="size-5 text-primary" /> Strategy call
             </h2>
@@ -242,17 +167,10 @@ function Index() {
         </div>
 
         {readings.length > 0 && (
-          <section className="panel-pit animate-fade-up mt-6 rounded-lg p-6 [animation-delay:200ms]">
+          <section className="panel-pit mt-6 rounded-lg p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-2xl">Frame log</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setReadings([]);
-                  resetSession();
-                }}
-              >
+              <Button variant="outline" size="sm" onClick={() => setReadings([])}>
                 <Trash2 className="mr-2 size-4" /> Clear session
               </Button>
             </div>
@@ -272,9 +190,7 @@ function Index() {
                       className="h-24 w-full object-cover"
                     />
                     <figcaption className="p-2">
-                      <p
-                        className={`font-display text-lg leading-none ${CONDITION_META[r.condition].tone}`}
-                      >
+                      <p className={`font-display text-lg leading-none ${CONDITION_META[r.condition].tone}`}>
                         {r.condition.toUpperCase()}
                       </p>
                       <p className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">

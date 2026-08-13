@@ -5,6 +5,8 @@ Real-time track condition analysis API
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List
 import torch
@@ -21,6 +23,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 from train_classifier import SurfaceConditionModel
 from torchvision import transforms
+
+# Windows defaults stdout/stderr to cp1252, which crashes on the ✓/✗ banner
+# chars when output is redirected. Force UTF-8 so the API never dies printing.
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 # ============================================================================
 # INITIALIZE FASTAPI
@@ -45,7 +53,18 @@ app.add_middleware(
 # LOAD MODEL
 # ============================================================================
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "checkpoints", "best_model.ckpt")
+# Paths resolve relative to THIS file, so the API works no matter what
+# working directory it is launched from.
+BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent  # .../tracksense-ai
+CHECKPOINT_DIR = BASE_DIR / "checkpoints"
+
+MODEL_PATH = CHECKPOINT_DIR / "best_model.ckpt"
+if not MODEL_PATH.exists():
+    # Fall back to the most recent checkpoint if best_model.ckpt is missing.
+    candidates = sorted(CHECKPOINT_DIR.glob("*.ckpt"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if candidates:
+        MODEL_PATH = candidates[0]
+MODEL_PATH = str(MODEL_PATH)
 
 print("\n" + "="*70)
 print("TRACKSENSE AI - STARTING API")
@@ -169,12 +188,16 @@ async def analyze_frame(
     
     try:
         # Create or retrieve session
-        if not session_id or session_id not in sessions:
+        if not session_id:
             session = Session()
+            session_id = session.id
+            sessions[session_id] = session
+        elif session_id not in sessions:
+            session = Session()
+            session.id = session_id
             sessions[session_id] = session
         else:
             session = sessions[session_id]
-            session_id = session.id
         
         # Read uploaded image
         contents = await file.read()
@@ -261,6 +284,42 @@ async def list_sessions():
     }
 
 # ============================================================================
+# SERVE BUILT FRONTEND (if present) SO ONE SERVER RUNS THE WHOLE APP
+# ============================================================================
+
+FRONTEND_DIST = next(
+    (p for p in [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "weather-whiplash-radar", "dist")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "weather-whiplash-radar", "dist")),
+    ] if os.path.isdir(p)),
+    None,
+)
+
+if FRONTEND_DIST and os.path.isdir(os.path.join(FRONTEND_DIST, "client")):
+    FRONTEND_DIST = os.path.join(FRONTEND_DIST, "client")
+
+if FRONTEND_DIST:
+    app.mount(
+        "/assets",
+        StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")),
+        name="assets",
+    )
+
+    @app.get("/", include_in_schema=False)
+    async def serve_frontend():
+        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend_fallback(full_path: str):
+        index_path = os.path.join(FRONTEND_DIST, "index.html")
+        candidate = os.path.join(FRONTEND_DIST, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(index_path)
+
+    print(f"Serving frontend from {FRONTEND_DIST}")
+
+# ============================================================================
 # STARTUP MESSAGE
 # ============================================================================
 
@@ -283,8 +342,8 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         app,
-        host="127.0.0.1",
-        port=8001,
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", "8000")),
         reload=False  # Auto-reload on code changes
     )
 
